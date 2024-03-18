@@ -1,0 +1,64 @@
+{{/*
+	Play a game of Blackjack
+	See <https://yagpdb-cc.github.io/fun/blackjack> for more information.
+
+	Author: Henri <https://github.com/H1nr1>
+*/}}
+
+{{with .ExecData}}
+	{{editMessage nil . (complexMessageEdit "content" "*Blackjack has Expired*")}}
+	{{deleteAllMessageReactions nil .}}
+	{{return}}
+{{end}}
+
+{{$bj:=(sdict 
+	"sets" (cslice "❤️" "♦️" "♠️" "♣️") 
+	"cards" (cslice "2" "3" "4" "5" "6" "7" "8" "9" "10" "J" "Q" "K" "A") 
+	"values" (sdict "J" 10 "Q" 10 "K" 10 "A" 11)
+)}}
+
+{{$dealerCard:=printf "`%s %s`" (index (shuffle $bj.sets) 0) ($dealerValue:=index (shuffle $bj.cards) 0)}}
+{{$dealerValue =or ($bj.values.Get $dealerValue) (toInt $dealerValue)}}
+
+{{$userCard1:=printf "`%s %s`" (index (shuffle $bj.sets) 0) ($userValue1:=index (shuffle $bj.cards) 0)}}
+{{$userCard2:=printf "`%s %s`" (index (shuffle $bj.sets) 0) ($userValue2:=index (shuffle $bj.cards) 0)}}
+{{$userValue:=add (or ($bj.values.Get $userValue1) (toInt $userValue1)) (or ($bj.values.Get $userValue2) (toInt $userValue2))}}
+
+{{if and (eq "A" $userValue1 $userValue2) (gt $userValue 21)}}
+	{{$userValue =sub $userValue 10}}
+{{end}}
+
+{{$e:=sdict 
+	"title" (printf "%s's Blackjack" .User.Username)
+	"fields" (cslice 
+		(sdict "name" "Dealer's Hand" "value" (printf "Cards: %s\nValue: `%d`" $dealerCard $dealerValue) "inline" true) 
+		(sdict "name" (printf "%s's Hand" .User.Username) "value" (printf "Cards: %s %s\nValue: `%d`" $userCard1 $userCard2 $userValue) "inline" true)) 
+	"footer" (sdict "text" "This game will expire after 5 minutes") 
+	"color" (randInt 0xFFFFFF)
+}}
+
+{{$end:=false}}
+
+{{if eq $userValue 21}}
+	{{$e.Set "description" (printf "**%s has Blackjack!**" .User.Username)}}
+	{{$e.footer.Del "text"}}
+	{{$end =true}}
+{{end}}
+
+{{$id:=sendMessageRetID nil (cembed $e)}}
+
+{{if not $end}}
+	{{addMessageReactions nil $id "👊" "🧍‍♂️" "⏬"}}
+	{{dbSet $id "gameBlackjack" (sdict 
+		"dealer" (sdict 
+			"cards" (cslice $dealerCard) 
+			"value" $dealerValue
+		) 
+		"user" (sdict 
+			"cards" (cslice $userCard1 $userCard2) 
+			"ID" .User.ID
+			"value" $userValue
+		)
+	)}}
+	{{execCC .CCID nil 300 $id}}
+{{end}}

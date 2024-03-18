@@ -1,0 +1,101 @@
+{{/*
+	Allows users to mange their game of blackjack
+	See <https://yagpdb-cc.github.io/fun/blackjack> for more information.
+
+	Author: Henri <https://github.com/H1nr1>
+*/}}
+
+{{$bj:=sdict 
+	"sets" (cslice "❤️" "♦️" "♠️" "♣️") 
+	"cards" (cslice "2" "3" "4" "5" "6" "7" "8" "9" "10" "J" "Q" "K" "A") 
+	"values" (sdict "J" 10 "Q" 10 "K" 10 "A" 11)
+}}
+{{$reaction:=.Reaction.Emoji.APIName}}
+
+{{if eq $reaction "👊" "🧍‍♂️" "⏬"}}
+	{{$db:=(dbGet .Message.ID "gameBlackjack").Value}}
+	{{if not $db}}{{return}}{{end}}
+
+	{{if ne $db.user.ID .User.ID}}
+		{{.User.Mention}}, that [game of Blackjack](<{{.Message.Link}}>) is not yours to play
+		{{return}}
+	{{end}}
+
+	{{$e:=index .Message.Embeds 0|structToSdict}}
+	{{$desc:=or $e.description ""}}
+	{{$end:=false}}
+
+	{{if eq $reaction "⏬"}}
+		{{$desc =printf "%s doubled down taking their final card." .User.Username}}
+	{{end}}
+
+	{{if eq $reaction "👊" "⏬"}}
+		{{$db.user.Set "cards" ($db.user.cards.Append (printf "`%s %s`" (index (shuffle $bj.sets) 0) ($value:=index (shuffle $bj.cards) 0)))}}
+		{{$db.user.Set "value" (add $db.user.value (or ($bj.values.Get $value) (toInt $value)))}}
+
+		{{if gt $db.user.value 21}}
+			{{$value =0}}{{$aces:=0}}
+			{{range $db.user.cards}}
+				{{- $value =add $value (or ($bj.values.Get ($card:=reFind `\d+|J|Q|K|A` .)) (toInt $card))}}
+				{{- if eq $card "A"}}{{- $aces =add $aces 1}}{{- end -}}
+			{{end}}
+
+			{{while $aces}}
+				{{- if gt $value 21}}{{- $value =sub $value 10}}{{- end}}
+				{{- $aces =sub $aces 1 -}}
+			{{end}}
+
+			{{$db.user.Set "value" $value}}
+			{{if gt $value 21}}
+				{{$desc =printf "%s\n%s busted, losing their game of Blackjack" $desc .User.Username}}
+				{{$end =true}}
+			{{end}}
+		{{end}}
+
+		{{if eq $db.user.value 21}}
+			{{$desc =printf "%s\n%s has Blackjack!" $desc .User.Username}}
+			{{$end =true}}
+		{{end}}
+	{{end}}
+
+	{{if or (eq $reaction "🧍‍♂️") (and (eq $reaction "⏬") (lt $db.user.value 21))}}
+		{{while lt $db.dealer.value 17}}
+			{{- $db.dealer.Set "cards" ($db.dealer.cards.Append (printf "`%s %s`" (index (shuffle $bj.sets) 0) ($value:=index (shuffle $bj.cards) 0)))}}
+			{{- $db.dealer.Set "value" ($value =add $db.dealer.value (or ($bj.values.Get $value) (toInt $value))) -}}
+		{{end}}
+
+		{{if or (gt $db.user.value $db.dealer.value) (gt $db.dealer.value 21)}}
+			{{$desc =printf "%s\n%s won their game of Blackjack!" $desc .User.Username}}
+		{{else if eq $db.user.value $db.dealer.value}}
+			{{$desc =printf "%s\n%s drew with the dealer\nNo gains nor losses." $desc .User.Username}}
+		{{else}}
+			{{$desc =printf "%s\n%s lost their game of Blackjack" $desc .User.Username}}
+		{{end}}
+
+		{{$end =true}}
+	{{end}}
+
+	{{dbSet .Message.ID "gameBlackjack" $db}}
+	{{deleteMessageReaction nil .Message.ID .BotUser.ID "⏬"}}
+	{{deleteMessageReaction nil .Message.ID .User.ID $reaction}}
+
+	{{$e.Set "description" $desc}}
+	{{$e.Set "fields" (cslice 
+		(sdict 
+			"name" "Dealer's Hand" 
+			"value" (printf "Cards: %s\nValue: `%d`" (joinStr " " $db.dealer.cards) $db.dealer.value) 
+			"inline" true
+		) 
+		(sdict 
+			"name" (printf "%s's Hand" .User.Username) 
+			"value" (printf "Cards: %s\nValue: `%d`" (joinStr " " $db.user.cards) $db.user.value) 
+			"inline" true
+		)
+	)}}
+	{{editMessage nil .Message.ID (cembed $e)}}
+
+	{{if $end}}
+		{{deleteAllMessageReactions nil .Message.ID}}
+		{{dbDel .Message.ID "gameBlackjack"}}
+	{{end}}
+{{end}}
