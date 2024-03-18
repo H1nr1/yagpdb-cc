@@ -1,10 +1,10 @@
 ---
-title: Blackjack Main Command
+title: Main
 ---
 
 This command starts a game of blackjack.
 
-For more information about the blackjack game, see [the overview](overview) page.
+For more information about the blackjack game, see [the overview page](overview).
 
 ## Trigger
 
