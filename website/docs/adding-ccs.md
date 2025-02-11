@@ -76,6 +76,6 @@ When adding systems of custom commands, the process is essentially the same, exc
 For commands with especially complicated setups, there may be an installation guide available for them in the overview. For example, see the following guides:
 
 - [Giveaway system v2](giveaway/basic-v2/overview.md/#installation)
-- [Starboard v2](fun/starboard/overview/#installation)
+- [Starboard v2](fun/starboard/v2/overview/#installation)
 
 Otherwise, there isn't much difference between adding systems of custom commands and standalone ones.
