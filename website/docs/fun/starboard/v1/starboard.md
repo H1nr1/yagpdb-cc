@@ -47,7 +47,7 @@ This command allows users to react to messages with stars. If it reaches a given
 
 ## Code
 
-```gotmpl file=../../../src/fun/starboard/v1/starboard.go.tmpl
+```gotmpl file=../../../../src/fun/starboard/v1/starboard.go.tmpl
 
 ```
 
