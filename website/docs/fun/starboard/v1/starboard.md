@@ -4,7 +4,7 @@ title: Starboard V1
 
 :::note
 
-There is a [newer version](starboard/overview) of the starboard system that has all of the features of this one. We recommend that you consider switching to it / using it over this one if possible.
+There is a [newer version](starboard/v2/overview) of the starboard system that has all of the features of this one. We recommend that you consider switching to it / using it over this one if possible.
 
 :::
 
@@ -47,7 +47,7 @@ This command allows users to react to messages with stars. If it reaches a given
 
 ## Code
 
-```gotmpl file=../../../src/fun/starboard.go.tmpl
+```gotmpl file=../../../src/fun/starboard/v1/starboard.go.tmpl
 
 ```
 
